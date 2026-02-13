@@ -1,0 +1,34 @@
+# Deployment using a pre-existing ConfigMap
+# Useful when config is managed externally (e.g. GitOps, Sealed Secrets, or
+# another team manages the beacon node configuration).
+
+deployment:
+  replicas: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# Reference a ConfigMap that already exists in the cluster.
+# It must contain a `config.toml` key with valid TOML configuration.
+configMap:
+  existingConfigMap: my-consensus-proxy-config
+
+# Alternatively, use a Secret for sensitive config (e.g. API keys):
+#
+# configMap:
+#   enabled: false
+#
+# extraVolumes:
+#   - name: config
+#     secret:
+#       secretName: consensus-proxy-secret
+#
+# extraVolumeMounts:
+#   - name: config
+#     mountPath: /etc/consensus-proxy
+#     readOnly: true

@@ -1,0 +1,77 @@
+# Deployment with monitoring sidecar
+# Demonstrates extraContainers for a log-shipping sidecar and
+# Prometheus ServiceMonitor for metrics scraping.
+
+deployment:
+  replicas: 2
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels:
+    release: prometheus
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+extraContainers:
+  - name: vector
+    image: timberio/vector:latest-alpine
+    args:
+      - --config-dir=/etc/vector
+    volumeMounts:
+      - name: vector-config
+        mountPath: /etc/vector
+        readOnly: true
+
+extraVolumes:
+  - name: vector-config
+    configMap:
+      name: vector-sidecar-config
+
+configMap:
+  config: |
+    [server]
+    port = 8080
+    max_retries = 3
+    request_timeout = "30s"
+
+    [beacons]
+    nodes = ["lighthouse-1", "lighthouse-2"]
+
+    [beacons.lighthouse-1]
+    url = "http://lighthouse-1:5052"
+    type = "lighthouse"
+
+    [beacons.lighthouse-2]
+    url = "http://lighthouse-2:5052"
+    type = "lighthouse"
+
+    [failover]
+    error_threshold = 3
+
+    [metrics]
+    enabled = true
+    namespace = "consensus_proxy"
+
+    [logger]
+    level = "info"
+    format = "json"
+    output = "stdout"
+
+    [health]
+    interval = "15s"
+    timeout = "5s"
+    successful_checks_for_failback = 3

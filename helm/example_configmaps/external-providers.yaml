@@ -1,0 +1,74 @@
+# External provider deployment
+# Uses hosted beacon node providers (Infura, Alchemy) alongside
+# a self-hosted node for redundancy without running full infrastructure.
+
+deployment:
+  replicas: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+configMap:
+  config: |
+    [server]
+    port = 8080
+    max_retries = 3
+    request_timeout = "30s"
+
+    [beacons]
+    nodes = ["lighthouse-local", "infura", "alchemy"]
+
+    [beacons.lighthouse-local]
+    url = "http://lighthouse:5052"
+    type = "lighthouse"
+
+    [beacons.infura]
+    url = "https://PROJECTID.infura.io/v3/YOUR_API_KEY"
+    type = "infura"
+
+    [beacons.alchemy]
+    url = "https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY"
+    type = "alchemy"
+
+    [failover]
+    error_threshold = 3
+
+    [metrics]
+    enabled = true
+    namespace = "consensus_proxy"
+
+    [logger]
+    level = "info"
+    format = "json"
+    output = "stdout"
+
+    [ratelimit]
+    enabled = true
+    requests_per_second = 100
+    window = "1m"
+    cleanup_interval = "5m"
+    client_expiry = "10m"
+
+    [dns]
+    cache_ttl = "1m"
+    connection_timeout = "10s"
+
+    [proxy]
+    user_agent = "consensus-proxy/1.0"
+    max_idle_connections = 100
+    idle_connection_timeout = "90s"
+    max_idle_connections_per_host = 20
+    max_connections_per_host = 100
+    response_header_timeout = "15s"
+    tls_handshake_timeout = "10s"
+    expect_continue_timeout = "1s"
+
+    [health]
+    interval = "30s"
+    timeout = "10s"
+    successful_checks_for_failback = 3

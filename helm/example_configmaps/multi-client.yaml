@@ -1,0 +1,61 @@
+# Multi-client diversity deployment
+# Runs behind one of each major beacon node implementation for
+# maximum client diversity and resilience against client-specific bugs.
+
+deployment:
+  replicas: 2
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+configMap:
+  config: |
+    [server]
+    port = 8080
+    max_retries = 3
+    request_timeout = "30s"
+
+    [beacons]
+    nodes = ["lighthouse", "prysm", "teku", "nimbus", "erigon"]
+
+    [beacons.lighthouse]
+    url = "http://lighthouse:5052"
+    type = "lighthouse"
+
+    [beacons.prysm]
+    url = "http://prysm:3500"
+    type = "prysm"
+
+    [beacons.teku]
+    url = "http://teku:5051"
+    type = "teku"
+
+    [beacons.nimbus]
+    url = "http://nimbus:5052"
+    type = "nimbus"
+
+    [beacons.erigon]
+    url = "http://erigon:5555"
+    type = "erigon"
+
+    [failover]
+    error_threshold = 3
+
+    [metrics]
+    enabled = true
+    namespace = "consensus_proxy"
+
+    [logger]
+    level = "info"
+    format = "json"
+    output = "stdout"
+
+    [health]
+    interval = "15s"
+    timeout = "5s"
+    successful_checks_for_failback = 3
