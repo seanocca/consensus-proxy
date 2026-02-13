@@ -1,0 +1,17 @@
+apiVersion: v2
+name: consensus-proxy
+description: A Helm chart for Consensus Proxy - an Ethereum beacon node load balancer and proxy
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: seanocca
+home: https://github.com/seanocca/consensus-proxy
+sources:
+  - https://github.com/seanocca/consensus-proxy
+keywords:
+  - ethereum
+  - beacon
+  - proxy
+  - load-balancer
+  - consensus
