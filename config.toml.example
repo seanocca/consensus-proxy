@@ -1,0 +1,80 @@
+# Ethereum Beacon Node Load Balancer Configuration
+# This file shows the default configuration values.
+# All settings are optional and will use these defaults if not specified.
+
+[server]
+port = 8080                 # Default: 8080
+read_timeout = "30s"        # Default: 30s - Maximum duration for reading the entire request
+write_timeout = "30s"       # Default: 30s - Maximum duration before timing out writes
+max_retries = 3             # Default: 3 - Maximum number of retry attempts per request
+request_timeout = "30ms"    # Default: 30ms - Timeout for proxied requests to beacon nodes
+idle_timeout = "90s"        # Default: 90s - Server idle timeout
+read_header_timeout = "10s" # Default: 10s - Time to read request headers
+
+[failover]
+error_threshold = 5         # Default: 5 - Number of consecutive errors before failover
+
+[metrics]
+enabled = false             # Default: false - Enable Prometheus metrics collection
+namespace = "consensus_proxy" # Default: "consensus_proxy" - Metric namespace prefix
+
+[logger]
+level = "info"              # Default: "info" - Log level: debug, info, warn, error
+format = "json"             # Default: "json" - Output format: json or text
+output = "stdout"           # Default: "stdout" - Output destination: stdout, stderr, or file path
+
+[ratelimit]
+enabled = false                 # Default: false - Enable rate limiting
+requests_per_second = 100       # Default: 100 - Maximum requests per second per IP
+window = "1m"                   # Default: 1m - Time window for rate limiting
+cleanup_interval = "5m"         # Default: 5m - How often to clean up expired clients
+client_expiry = "10m"           # Default: 10m - How long to keep client data after last request
+
+# DNS Configuration
+[dns]
+cache_ttl = "5m"                # Default: 5m - How long to cache DNS lookups
+connection_timeout = "10s"      # Default: 10s - Timeout for DNS connections
+
+# HTTP Proxy Configuration
+[proxy]
+user_agent = "consensus-proxy/1.0"          # Default: "consensus-proxy/1.0" - User agent for outbound requests
+max_idle_connections = 100                  # Default: 100 - Maximum idle connections total
+idle_connection_timeout = "90s"             # Default: 90s - Timeout for idle connections
+max_idle_connections_per_host = 10          # Default: 10 - Maximum idle connections per host
+max_connections_per_host = 100              # Default: 100 - Maximum connections per host
+response_header_timeout = "10s"             # Default: 10s - Timeout for response headers
+tls_handshake_timeout = "10s"               # Default: 10s - Timeout for TLS handshakes
+expect_continue_timeout = "1s"              # Default: 1s - Timeout for Expect: 100-continue
+
+# WebSocket Configuration
+[websocket]
+read_buffer_size = 4096         # Default: 4096 - WebSocket read buffer size in bytes
+write_buffer_size = 4096        # Default: 4096 - WebSocket write buffer size in bytes
+error_channel_buffer = 100      # Default: 100 - Error channel buffer size
+
+# Health Check Configuration
+[healthcheck]
+interval = "30s"                        # Default: 30s - How often to check backup node health
+timeout = "5s"                          # Default: 5s - Timeout for each health check request
+successful_checks_for_failback = 3     # Default: 3 - Number of consecutive successful checks before failing back to original primary
+
+# Beacon Node Configuration
+# The first beacon in the list is always treated as the primary node
+# Subsequent beacons are used as backups in order of priority
+
+[beacons]
+# List of beacon names in priority order (first is primary)
+nodes = ["chainstack", "erigon", "lighthouse"]
+
+# Individual beacon configurations
+[beacons.lighthouse]
+url = "http://localhost:5052"
+type = "lighthouse"
+
+[beacons.erigon]
+url = "http://localhost:5052"
+type = "erigon"
+
+[beacons.chainstack]
+url = "https://external-url"
+type = "nimbus"

@@ -1,0 +1,17 @@
+{
+  "CHECKS": {
+      "ignoreLabels": [],
+      "prefixes": [],
+      "regexp": "^(wip|feat|fix|docs|style|refactor|perf|test|chore|revert|ci|build|sec)(\\([^\\)]+\\))?: (#[0-9]+|NOSTORY): .+$",
+      "regexpFlags": ""
+  },
+  "LABEL": {
+      "color": "EEEEEE",
+      "name": "PR title should be format `commit-type: #issue: Description` or `commit-type: NOSTORY: Description`. Scope optional."
+  },
+  "MESSAGES": {
+      "failure": "Failing CI test",
+      "notice": "",
+      "success": "All OK"
+  }
+}

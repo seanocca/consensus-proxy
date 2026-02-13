@@ -1,0 +1,74 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Kubernetes files
+k8s/
+*.yaml
+*.yml
+
+# Test files
+tests/
+*_test.go
+test-results/
+coverage.out
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Development tools
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Build artifacts
+bin/
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs
+*.log
+logs/
+
+# Dependencies (will be downloaded during build)
+vendor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Scripts
+*.sh
+Makefile
+
+# Config files (except what we explicitly need)
+*.toml
+!go.mod
+!go.sum
+
+# Misc
+tmp/
+temp/
+.cache/
+
+config.toml

@@ -1,0 +1,265 @@
+# Beacon Proxy .gitignore
+
+# Binaries and executables
+/bin/
+/dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go build artifacts
+*.o
+*.a
+*.out
+*.test
+
+# Go coverage files
+*.cover
+coverage.out
+coverage.html
+c.out
+
+# Go module files (keep go.mod and go.sum)
+/vendor/
+
+# Test artifacts
+/tmp/
+/temp/
+stress-test
+benchmark-results/
+test-results/
+*.benchmark
+
+# Configuration files with secrets
+config-*.toml
+config.toml
+/configs/production.toml
+/configs/staging.toml
+/configs/*-secrets.toml
+
+# Data directories
+/data/
+/beacon_data/
+/beacon_logs/
+/logs/
+*.log
+*.log.*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+/tmp/
+*.tmp
+*.temp
+.cache/
+
+# Debug and profiling
+debug
+pprof/
+*.prof
+cpu.prof
+mem.prof
+trace.out
+
+# SSL/TLS certificates
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Local development
+.local/
+local/
+dev/
+development/
+
+# Performance and monitoring
+/metrics/
+/monitoring/
+*.metrics
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Archives
+*.tar
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Node.js (if you have any JS tooling)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Python (if you have any Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Documentation build artifacts
+/docs/_build/
+/docs/build/
+*.pdf
+
+# Air (Go live reload) config
+.air.toml
+
+# GoReleaser
+dist/
+.goreleaser.yml
+
+# Security scanning results
+/security/
+*.sarif
+
+# Terraform (if using IaC)
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+terraform.tfvars.json
+
+# Ansible (if using for deployment)
+*.retry
+hosts.ini
+group_vars/secrets.yml
+
+# Local environment overrides
+.env.local
+.env.development
+.env.staging
+.env.production
+
+# Generated documentation
+/api-docs/
+/swagger-ui/
+
+# IDE specific
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+.idea/tasks.xml
+
+# Mac specific
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows specific  
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux specific
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Custom application files
+consensus-proxy-config-*.toml
+custom-*.toml
+local-*.toml
+
+# Performance test outputs
+/load-test-results/
+/stress-test-outputs/
+*.load
+*.perf
+
+# Monitoring and alerting configs with secrets
+alertmanager.yml
+prometheus.yml
+grafana/
+
+# Certificate authority files
+ca/
+certs/
+tls/
+
+# Local scripts
+setup-local.sh
+deploy-local.sh
+local-*.sh
+
+# Generated files
+generated/
+auto-generated/
+*.generated.go
+
+# Flamegraph files
+*.svg
+flamegraph/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+.netrwhist
+tags
+[._]*.un~
