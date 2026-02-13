@@ -1,7 +1,9 @@
 # consensus Proxy Makefile
 # Automates building and testing
 
-.PHONY: all build test stress benchmark clean install docker help
+.PHONY: all build test stress benchmark clean install docker help \
+	testnet-setup testnet-up testnet-down testnet-logs \
+	testnet-lighthouse testnet-prysm testnet-nimbus testnet-teku testnet-erigon
 
 # Default target
 all: build test
@@ -67,6 +69,62 @@ docker-run:
 	@echo "🐳 Running with Docker..."
 	@docker run -p 8080:8080 -v $(PWD)/config.toml:/app/config.toml consensus-proxy:latest
 
+# ── Testnet: beacon node test environment ─────────────────────────────
+
+NETWORK ?= holesky
+
+# Generate JWT secret required by beacon nodes
+testnet-setup:
+	@./tests/setup.sh
+
+# Start all beacon nodes and Geth execution client
+testnet-up: testnet-setup
+	@echo "🚀 Starting beacon node testnet ($(NETWORK))..."
+	@NETWORK=$(NETWORK) docker compose -f tests/docker-compose.yaml up -d
+	@echo "✅ Testnet running. Beacon API endpoints:"
+	@echo "   Lighthouse  http://localhost:5052"
+	@echo "   Prysm       http://localhost:3500"
+	@echo "   Nimbus      http://localhost:5053"
+	@echo "   Teku        http://localhost:5051"
+	@echo "   Erigon      http://localhost:5555"
+	@echo "   Geth RPC    http://localhost:8545"
+
+# Start a single beacon node (+ Geth if needed). Erigon is self-contained.
+testnet-lighthouse: testnet-setup
+	@echo "🚀 Starting Lighthouse + Geth ($(NETWORK))..."
+	@NETWORK=$(NETWORK) docker compose -f tests/docker-compose.yaml up -d lighthouse
+	@echo "✅ Lighthouse  http://localhost:5052"
+
+testnet-prysm: testnet-setup
+	@echo "🚀 Starting Prysm + Geth ($(NETWORK))..."
+	@NETWORK=$(NETWORK) docker compose -f tests/docker-compose.yaml up -d prysm
+	@echo "✅ Prysm       http://localhost:3500"
+
+testnet-nimbus: testnet-setup
+	@echo "🚀 Starting Nimbus + Geth ($(NETWORK))..."
+	@NETWORK=$(NETWORK) docker compose -f tests/docker-compose.yaml up -d nimbus
+	@echo "✅ Nimbus      http://localhost:5053"
+
+testnet-teku: testnet-setup
+	@echo "🚀 Starting Teku + Geth ($(NETWORK))..."
+	@NETWORK=$(NETWORK) docker compose -f tests/docker-compose.yaml up -d teku
+	@echo "✅ Teku        http://localhost:5051"
+
+testnet-erigon: testnet-setup
+	@echo "🚀 Starting Erigon ($(NETWORK))..."
+	@NETWORK=$(NETWORK) docker compose -f tests/docker-compose.yaml up -d erigon
+	@echo "✅ Erigon      http://localhost:5555"
+
+# Stop and remove all testnet containers and volumes
+testnet-down:
+	@echo "🛑 Stopping beacon node testnet..."
+	@docker compose -f tests/docker-compose.yaml down -v
+	@echo "✅ Testnet stopped"
+
+# Tail logs for all testnet services (or a single service via SVC=)
+testnet-logs:
+	@docker compose -f tests/docker-compose.yaml logs -f $(SVC)
+
 # Clean build artifacts
 clean:
 	@echo "🧹 Cleaning up..."
@@ -108,6 +166,24 @@ help:
 	@echo "Development:"
 	@echo "  make dev          Start development server"
 	@echo "  make validate     Validate config files"
+	@echo ""
+	@echo "Testnet (beacon nodes):"
+	@echo "  make testnet-up              Start all beacon nodes + Geth"
+	@echo "  make testnet-down            Stop and remove all testnet containers"
+	@echo "  make testnet-logs            Tail logs for all services"
+	@echo "  make testnet-logs SVC=prysm  Tail logs for a single service"
+	@echo "  make testnet-setup           Generate JWT secret only"
+	@echo ""
+	@echo "  Single node (starts Geth automatically where needed):"
+	@echo "  make testnet-lighthouse      Lighthouse  http://localhost:5052"
+	@echo "  make testnet-prysm           Prysm       http://localhost:3500"
+	@echo "  make testnet-nimbus          Nimbus      http://localhost:5053"
+	@echo "  make testnet-teku            Teku        http://localhost:5051"
+	@echo "  make testnet-erigon          Erigon      http://localhost:5555"
+	@echo ""
+	@echo "  Network (default: holesky):"
+	@echo "  make testnet-up NETWORK=sepolia"
+	@echo "  make testnet-lighthouse NETWORK=sepolia"
 	@echo ""
 	@echo "Utilities:"
 	@echo "  make clean        Clean build artifacts"

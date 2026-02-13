@@ -1,0 +1,146 @@
+# Ethereum Beacon Node Test Environment
+#
+# Starts one execution client (Geth) and one of each supported beacon node type.
+# All beacon nodes point at the shared Geth instance via Engine API (JWT auth).
+#
+# Prerequisites:
+#   ./tests/setup.sh    # generates the JWT secret (tests/jwt.hex)
+#
+# Usage:
+#   Holesky (default):  docker compose -f tests/docker-compose.yaml up -d
+#   Sepolia:            NETWORK=sepolia docker compose -f tests/docker-compose.yaml up -d
+#   Tear down:          docker compose -f tests/docker-compose.yaml down -v
+
+x-network: &network ${NETWORK:-holesky}
+
+services:
+  # ── Execution Layer ────────────────────────────────────────────────
+  geth:
+    image: ethereum/client-go:stable
+    restart: unless-stopped
+    command:
+      - --${NETWORK:-holesky}
+      - --syncmode=snap
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.port=8551
+      - --authrpc.vhosts=*
+      - --authrpc.jwtsecret=/secrets/jwt.hex
+      - --http
+      - --http.addr=0.0.0.0
+      - --http.port=8545
+    volumes:
+      - geth-data:/root/.ethereum
+      - ./jwt.hex:/secrets/jwt.hex:ro
+    ports:
+      - "8545:8545"
+      - "8551:8551"
+      - "30303:30303"
+      - "30303:30303/udp"
+
+  # ── Consensus Layer: Lighthouse ────────────────────────────────────
+  lighthouse:
+    image: sigp/lighthouse:latest-modern
+    restart: unless-stopped
+    depends_on:
+      - geth
+    command:
+      - lighthouse
+      - bn
+      - --network=${NETWORK:-holesky}
+      - --execution-endpoint=http://geth:8551
+      - --execution-jwt=/secrets/jwt.hex
+      - --http
+      - --http-address=0.0.0.0
+      - --http-port=5052
+      - --checkpoint-sync-url=https://checkpoint-sync.${NETWORK:-holesky}.ethpandaops.io
+    volumes:
+      - lighthouse-data:/root/.lighthouse
+      - ./jwt.hex:/secrets/jwt.hex:ro
+    ports:
+      - "5052:5052"
+
+  # ── Consensus Layer: Prysm ────────────────────────────────────────
+  prysm:
+    image: gcr.io/prysmaticlabs/prysm/beacon-chain:latest
+    restart: unless-stopped
+    depends_on:
+      - geth
+    command:
+      - --${NETWORK:-holesky}
+      - --execution-endpoint=http://geth:8551
+      - --jwt-secret=/secrets/jwt.hex
+      - --grpc-gateway-host=0.0.0.0
+      - --grpc-gateway-port=3500
+      - --checkpoint-sync-url=https://checkpoint-sync.${NETWORK:-holesky}.ethpandaops.io
+      - --genesis-beacon-api-url=https://checkpoint-sync.${NETWORK:-holesky}.ethpandaops.io
+      - --accept-terms-of-use
+    volumes:
+      - prysm-data:/data
+      - ./jwt.hex:/secrets/jwt.hex:ro
+    ports:
+      - "3500:3500"
+
+  # ── Consensus Layer: Nimbus ────────────────────────────────────────
+  nimbus:
+    image: statusim/nimbus-eth2:multiarch-latest
+    restart: unless-stopped
+    depends_on:
+      - geth
+    command:
+      - --network=${NETWORK:-holesky}
+      - --el=http://geth:8551
+      - --jwt-secret=/secrets/jwt.hex
+      - --rest
+      - --rest-address=0.0.0.0
+      - --rest-port=5052
+    volumes:
+      - nimbus-data:/home/user/nimbus-eth2
+      - ./jwt.hex:/secrets/jwt.hex:ro
+    ports:
+      - "5053:5052"
+
+  # ── Consensus Layer: Teku ──────────────────────────────────────────
+  teku:
+    image: consensys/teku:latest
+    restart: unless-stopped
+    depends_on:
+      - geth
+    command:
+      - --network=${NETWORK:-holesky}
+      - --ee-endpoint=http://geth:8551
+      - --ee-jwt-secret-file=/secrets/jwt.hex
+      - --rest-api-enabled=true
+      - --rest-api-interface=0.0.0.0
+      - --rest-api-port=5051
+      - --initial-state=https://checkpoint-sync.${NETWORK:-holesky}.ethpandaops.io/eth/v2/debug/beacon/states/finalized
+    volumes:
+      - teku-data:/opt/teku/data
+      - ./jwt.hex:/secrets/jwt.hex:ro
+    ports:
+      - "5051:5051"
+
+  # ── Consensus Layer: Erigon (Caplin built-in CL) ───────────────────
+  # Erigon runs both EL+CL in a single process via its built-in Caplin
+  # consensus layer. It does NOT need the shared Geth instance.
+  erigon:
+    image: erigontech/erigon:latest
+    restart: unless-stopped
+    command:
+      - --chain=${NETWORK:-holesky}
+      - --authrpc.jwtsecret=/secrets/jwt.hex
+      - --beacon.api=beacon,builder,config,debug,events,node,lighthouse
+      - --beacon.api.addr=0.0.0.0
+      - --beacon.api.port=5555
+    volumes:
+      - erigon-data:/home/erigon/.local/share/erigon
+      - ./jwt.hex:/secrets/jwt.hex:ro
+    ports:
+      - "5555:5555"
+
+volumes:
+  geth-data:
+  lighthouse-data:
+  prysm-data:
+  nimbus-data:
+  teku-data:
+  erigon-data:

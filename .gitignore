@@ -46,6 +46,13 @@ config.toml
 *.log
 *.log.*
 
+# AI tooling
+.claude/
+.cursor/
+.copilot/
+.aider*
+.codeium/
+
 # IDE and editor files
 .vscode/
 .idea/
@@ -202,6 +209,9 @@ $RECYCLE.BIN/
 consensus-proxy-config-*.toml
 custom-*.toml
 local-*.toml
+
+# JWT secrets
+*.hex
 
 # Performance test outputs
 /load-test-results/
