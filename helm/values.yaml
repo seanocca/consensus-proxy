@@ -187,6 +187,52 @@ podDisruptionBudget:
   minAvailable: 1
   # maxUnavailable: 1
 
+# -- Horizontal Pod Autoscaler
+horizontalPodAutoscaler:
+  enabled: false
+  annotations: {}
+  labels: {}
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+  # Additional custom metrics (e.g., for KEDA or Prometheus adapter)
+  customMetrics: []
+  # - type: Pods
+  #   pods:
+  #     metric:
+  #       name: http_requests_per_second
+  #     target:
+  #       type: AverageValue
+  #       averageValue: "1000"
+  # - type: External
+  #   external:
+  #     metric:
+  #       name: queue_depth
+  #       selector:
+  #         matchLabels:
+  #           queue: worker_tasks
+  #     target:
+  #       type: AverageValue
+  #       averageValue: "30"
+  behavior: {}
+    # scaleDown:
+    #   stabilizationWindowSeconds: 300
+    #   policies:
+    #   - type: Percent
+    #     value: 50
+    #     periodSeconds: 15
+    # scaleUp:
+    #   stabilizationWindowSeconds: 0
+    #   policies:
+    #   - type: Percent
+    #     value: 100
+    #     periodSeconds: 15
+    #   - type: Pods
+    #     value: 4
+    #     periodSeconds: 15
+    #   selectPolicy: Max
+
 # -- Probes
 livenessProbe:
   enabled: true
