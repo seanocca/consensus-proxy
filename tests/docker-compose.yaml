@@ -7,19 +7,27 @@
 #   ./tests/setup.sh    # generates the JWT secret (tests/jwt.hex)
 #
 # Usage:
-#   Holesky (default):  docker compose -f tests/docker-compose.yaml up -d
-#   Sepolia:            NETWORK=sepolia docker compose -f tests/docker-compose.yaml up -d
+#   Sepolia (default):  docker compose -f tests/docker-compose.yaml up -d
+#   Holesky:            NETWORK=holesky docker compose -f tests/docker-compose.yaml up -d
 #   Tear down:          docker compose -f tests/docker-compose.yaml down -v
-
-x-network: &network ${NETWORK:-holesky}
+#
+# Architecture:
+#   All images are multi-arch and select the correct platform automatically.
+#
+# Checkpoint sync (enabled by default — syncs from latest finalized state):
+#   Override:  CHECKPOINT_SYNC_URL=https://sepolia.beaconstate.info docker compose ...
+#   Disable:   CHECKPOINT_SYNC_URL= docker compose ...
+#   See https://eth-clients.github.io/checkpoint-sync-endpoints/ for endpoints.
 
 services:
   # ── Execution Layer ────────────────────────────────────────────────
+  # Pinned to v1.17.0 — the `stable` tag still points to v1.16.8 which
+  # predates the Fulu fork and is incompatible with latest beacon nodes.
   geth:
-    image: ethereum/client-go:stable
+    image: ethereum/client-go:v1.17.0
     restart: unless-stopped
     command:
-      - --${NETWORK:-holesky}
+      - --${NETWORK:-sepolia}
       - --syncmode=snap
       - --authrpc.addr=0.0.0.0
       - --authrpc.port=8551
@@ -38,21 +46,31 @@ services:
       - "30303:30303/udp"
 
   # ── Consensus Layer: Lighthouse ────────────────────────────────────
+  # Use `latest` — the `latest-modern` tag targets x86 AVX2 and is no
+  # longer updated on Docker Hub.
   lighthouse:
-    image: sigp/lighthouse:latest-modern
+    image: sigp/lighthouse:latest
     restart: unless-stopped
     depends_on:
       - geth
+    entrypoint: /bin/sh
     command:
-      - lighthouse
-      - bn
-      - --network=${NETWORK:-holesky}
-      - --execution-endpoint=http://geth:8551
-      - --execution-jwt=/secrets/jwt.hex
-      - --http
-      - --http-address=0.0.0.0
-      - --http-port=5052
-      - --checkpoint-sync-url=https://checkpoint-sync.${NETWORK:-holesky}.ethpandaops.io
+      - -c
+      - |
+        SYNC_FLAGS="--allow-insecure-genesis-sync"
+        if [ -n "$$CHECKPOINT_SYNC_URL" ]; then
+          SYNC_FLAGS="--checkpoint-sync-url=$$CHECKPOINT_SYNC_URL"
+        fi
+        exec lighthouse bn \
+          --network=${NETWORK:-sepolia} \
+          --execution-endpoint=http://geth:8551 \
+          --execution-jwt=/secrets/jwt.hex \
+          --http \
+          --http-address=0.0.0.0 \
+          --http-port=5052 \
+          $$SYNC_FLAGS
+    environment:
+      - CHECKPOINT_SYNC_URL=${CHECKPOINT_SYNC_URL:-https://beaconstate-sepolia.chainsafe.io}
     volumes:
       - lighthouse-data:/root/.lighthouse
       - ./jwt.hex:/secrets/jwt.hex:ro
@@ -60,41 +78,66 @@ services:
       - "5052:5052"
 
   # ── Consensus Layer: Prysm ────────────────────────────────────────
+  # Pinned to v7.1.2 — the `latest` tag on gcr.io still points to a
+  # pre-Fulu v6.x build that cannot unmarshal Fulu-era SSZ states.
   prysm:
-    image: gcr.io/prysmaticlabs/prysm/beacon-chain:latest
+    image: gcr.io/prysmaticlabs/prysm/beacon-chain:v7.1.2
     restart: unless-stopped
     depends_on:
       - geth
+    entrypoint: /bin/bash
     command:
-      - --${NETWORK:-holesky}
-      - --execution-endpoint=http://geth:8551
-      - --jwt-secret=/secrets/jwt.hex
-      - --grpc-gateway-host=0.0.0.0
-      - --grpc-gateway-port=3500
-      - --checkpoint-sync-url=https://checkpoint-sync.${NETWORK:-holesky}.ethpandaops.io
-      - --genesis-beacon-api-url=https://checkpoint-sync.${NETWORK:-holesky}.ethpandaops.io
-      - --accept-terms-of-use
+      - -c
+      - |
+        GENESIS_FLAGS="--genesis-state=/genesis/genesis.ssz"
+        if [ -n "$$CHECKPOINT_SYNC_URL" ]; then
+          GENESIS_FLAGS="--checkpoint-sync-url=$$CHECKPOINT_SYNC_URL --genesis-beacon-api-url=$$CHECKPOINT_SYNC_URL"
+        fi
+        exec /app/cmd/beacon-chain/beacon-chain \
+          --${NETWORK:-sepolia} \
+          --execution-endpoint=http://geth:8551 \
+          --jwt-secret=/secrets/jwt.hex \
+          --grpc-gateway-host=0.0.0.0 \
+          --grpc-gateway-port=3500 \
+          --accept-terms-of-use \
+          --min-sync-peers=0 \
+          $$GENESIS_FLAGS
+    environment:
+      - CHECKPOINT_SYNC_URL=${CHECKPOINT_SYNC_URL:-https://beaconstate-sepolia.chainsafe.io}
     volumes:
       - prysm-data:/data
       - ./jwt.hex:/secrets/jwt.hex:ro
+      - ./genesis/${NETWORK:-sepolia}-genesis.ssz:/genesis/genesis.ssz:ro
     ports:
       - "3500:3500"
 
   # ── Consensus Layer: Nimbus ────────────────────────────────────────
+  # Use `multiarch-latest` — platform metadata is now correct and
+  # Docker can select the right arm64/amd64 binary automatically.
   nimbus:
     image: statusim/nimbus-eth2:multiarch-latest
     restart: unless-stopped
     depends_on:
       - geth
+    entrypoint: /bin/sh
     command:
-      - --network=${NETWORK:-holesky}
-      - --el=http://geth:8551
-      - --jwt-secret=/secrets/jwt.hex
-      - --rest
-      - --rest-address=0.0.0.0
-      - --rest-port=5052
+      - -c
+      - |
+        SYNC_FLAGS=""
+        if [ -f /checkpoint/finalized-state.ssz ]; then
+          SYNC_FLAGS="--finalized-checkpoint-state=/checkpoint/finalized-state.ssz"
+        fi
+        exec /home/user/nimbus-eth2/build/nimbus_beacon_node \
+          --network=${NETWORK:-sepolia} \
+          --el=http://geth:8551 \
+          --jwt-secret=/secrets/jwt.hex \
+          --rest \
+          --rest-address=0.0.0.0 \
+          --rest-port=5052 \
+          $$SYNC_FLAGS
     volumes:
-      - nimbus-data:/home/user/nimbus-eth2
+      - nimbus-data:/home/user/nimbus-eth2/build/data
+      - ./checkpoint:/checkpoint:ro
       - ./jwt.hex:/secrets/jwt.hex:ro
     ports:
       - "5053:5052"
@@ -105,14 +148,21 @@ services:
     restart: unless-stopped
     depends_on:
       - geth
+    entrypoint: /bin/sh
     command:
-      - --network=${NETWORK:-holesky}
-      - --ee-endpoint=http://geth:8551
-      - --ee-jwt-secret-file=/secrets/jwt.hex
-      - --rest-api-enabled=true
-      - --rest-api-interface=0.0.0.0
-      - --rest-api-port=5051
-      - --initial-state=https://checkpoint-sync.${NETWORK:-holesky}.ethpandaops.io/eth/v2/debug/beacon/states/finalized
+      - -c
+      - |
+        exec /opt/teku/bin/teku \
+          --network=${NETWORK:-sepolia} \
+          --ee-endpoint=http://geth:8551 \
+          --ee-jwt-secret-file=/secrets/jwt.hex \
+          --rest-api-enabled=true \
+          --rest-api-interface=0.0.0.0 \
+          --rest-api-port=5051 \
+          --ignore-weak-subjectivity-period-enabled \
+          ${CHECKPOINT_SYNC_URL:+--initial-state=$$CHECKPOINT_SYNC_URL/eth/v2/debug/beacon/states/finalized}
+    environment:
+      - CHECKPOINT_SYNC_URL=${CHECKPOINT_SYNC_URL:-https://beaconstate-sepolia.chainsafe.io}
     volumes:
       - teku-data:/opt/teku/data
       - ./jwt.hex:/secrets/jwt.hex:ro
@@ -125,12 +175,23 @@ services:
   erigon:
     image: erigontech/erigon:latest
     restart: unless-stopped
+    entrypoint: /bin/sh
     command:
-      - --chain=${NETWORK:-holesky}
-      - --authrpc.jwtsecret=/secrets/jwt.hex
-      - --beacon.api=beacon,builder,config,debug,events,node,lighthouse
-      - --beacon.api.addr=0.0.0.0
-      - --beacon.api.port=5555
+      - -c
+      - |
+        SYNC_FLAGS="--caplin.checkpoint-sync.disable"
+        if [ -n "$$CHECKPOINT_SYNC_URL" ]; then
+          SYNC_FLAGS="--caplin.checkpoint-sync-url=$$CHECKPOINT_SYNC_URL"
+        fi
+        exec erigon \
+          --chain=${NETWORK:-sepolia} \
+          --authrpc.jwtsecret=/secrets/jwt.hex \
+          --beacon.api=beacon,builder,config,debug,events,node,lighthouse \
+          --beacon.api.addr=0.0.0.0 \
+          --beacon.api.port=5555 \
+          $$SYNC_FLAGS
+    environment:
+      - CHECKPOINT_SYNC_URL=${CHECKPOINT_SYNC_URL:-https://beaconstate-sepolia.chainsafe.io}
     volumes:
       - erigon-data:/home/erigon/.local/share/erigon
       - ./jwt.hex:/secrets/jwt.hex:ro

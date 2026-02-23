@@ -168,6 +168,7 @@ hosts.ini
 group_vars/secrets.yml
 
 # Local environment overrides
+.env
 .env.local
 .env.development
 .env.staging
@@ -212,6 +213,9 @@ local-*.toml
 
 # JWT secrets
 *.hex
+
+# Genesis state files (downloaded by setup.sh)
+*.ssz
 
 # Performance test outputs
 /load-test-results/
