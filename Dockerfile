@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/go-cache \
   VERSION=$(git rev-parse --short HEAD)
   BUILDTIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
   RELEASE=$release
-  CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags=ckzg -o /app/ -ldflags="-s -w" .
+  CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags=ckzg -o /app/consensus-proxy -ldflags="-s -w" .
 EOR
 
 # Final stage - using alpine for shell access

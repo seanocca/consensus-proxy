@@ -1,7 +1,7 @@
 # consensus Proxy Makefile
 # Automates building and testing
 
-.PHONY: all build test stress benchmark clean install docker help
+.PHONY: all build test stress benchmark clean install docker-local docker-registry docker-run help
 
 # Default target
 all: build test
@@ -56,8 +56,14 @@ stress-real:
 	@echo "💪 Running stress tests against real consensus nodes..."
 	@CONSENSUS_PROXY_TEST_MODE=real go test -v ./tests/ -run "TestStressSuite"
 
-# Build Docker image
-docker:
+# Build the Registry Docker image
+docker-registry:
+	@echo "🐳 Building Docker image..."
+	@docker build -t ghcr.io/seanocca/consensus-proxy:latest .
+	@echo "✅ Docker image built: consensus-proxy:latest"
+
+# Build the local Docker image
+docker-local:
 	@echo "🐳 Building Docker image..."
 	@docker build -t consensus-proxy:latest .
 	@echo "✅ Docker image built: consensus-proxy:latest"
@@ -92,9 +98,11 @@ help:
 	@echo "consensus Proxy Makefile Commands:"
 	@echo ""
 	@echo "Building:"
-	@echo "  make build        Build the application"
-	@echo "  make install      Install dependencies"
-	@echo "  make docker       Build Docker image"
+	@echo "  make build        		Build the application"
+	@echo "  make install      		Install dependencies"
+	@echo "  make docker-local  	Build the local Docker image"
+	@echo "  make docker-registry  	Build the Registry Docker image"
+	@echo "  make docker-run   		Run the application with Docker"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test              Run full test suite (all packages)"
@@ -120,9 +128,9 @@ help:
 	@echo "    CONSENSUS_PROXY_TEST_MODE=real     # Use real consensus nodes"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make build test                    # Build and test"
-	@echo "  make benchmark                     # Benchmark with mock servers"
-	@echo "  make benchmark-real                # Benchmark with real consensus nodes"
-	@echo "  make stress-real                   # Stress test with real consensus nodes"
-	@echo "  make docker docker-run            # Build and run container"
+	@echo "  make build test                   # Build and test"
+	@echo "  make benchmark                    # Benchmark with mock servers"
+	@echo "  make benchmark-real               # Benchmark with real consensus nodes"
+	@echo "  make stress-real                  # Stress test with real consensus nodes"
+	@echo "  make docker-local docker-run      # Build and run container"
 	@echo "  make install dev                  # Setup and start development"
