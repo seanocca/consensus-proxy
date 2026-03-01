@@ -71,4 +71,8 @@ tmp/
 temp/
 .cache/
 
+# Configuration Files
 config.toml
+
+# Helm Files
+helm/*
