@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -136,12 +137,62 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("config file not found: %s", configPath)
 	}
 
+	// Apply environment variable overrides
+	config.applyEnvOverrides()
+
 	// Validate configuration
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %v", err)
 	}
 
 	return config, nil
+}
+
+// applyEnvOverrides overrides config values with environment variables when set.
+// Environment variables always take precedence over the TOML file.
+func (c *Config) applyEnvOverrides() {
+	if v := os.Getenv("CONSENSUS_PROXY_PORT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Server.Port = n
+		}
+	}
+	if v := os.Getenv("CONSENSUS_PROXY_REQUEST_TIMEOUT"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			c.Server.RequestTimeout = d
+		}
+	}
+	if v := os.Getenv("CONSENSUS_PROXY_MAX_RETRIES"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Server.MaxRetries = n
+		}
+	}
+	if v := os.Getenv("CONSENSUS_PROXY_LOG_LEVEL"); v != "" {
+		c.Logger.Level = v
+	}
+	if v := os.Getenv("CONSENSUS_PROXY_LOG_FORMAT"); v != "" {
+		c.Logger.Format = v
+	}
+	if v := os.Getenv("CONSENSUS_PROXY_LOG_OUTPUT"); v != "" {
+		c.Logger.Output = v
+	}
+	if v := os.Getenv("CONSENSUS_PROXY_METRICS_ENABLED"); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			c.Metrics.Enabled = b
+		}
+	}
+	if v := os.Getenv("CONSENSUS_PROXY_STATSD_ADDR"); v != "" {
+		c.Metrics.StatsdAddr = v
+	}
+	if v := os.Getenv("CONSENSUS_PROXY_HEALTH_INTERVAL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			c.HealthCheck.Interval = d
+		}
+	}
+	if v := os.Getenv("CONSENSUS_PROXY_ERROR_THRESHOLD"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Failover.ErrorThreshold = n
+		}
+	}
 }
 
 // parseBeaconConfigs parses individual beacon configurations from the raw TOML data
@@ -209,7 +260,7 @@ func getDefaultConfig() *Config {
 			ReadTimeout:       30 * time.Second,
 			WriteTimeout:      30 * time.Second,
 			MaxRetries:        3,
-			RequestTimeout:    30 * time.Millisecond,
+			RequestTimeout:    10 * time.Second,
 			IdleTimeout:       90 * time.Second,
 			ReadHeaderTimeout: 10 * time.Second,
 		},

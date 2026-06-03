@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/zircuit-labs/consensus-proxy/cmd/beaconnode"
-	"github.com/zircuit-labs/consensus-proxy/cmd/logger"
+	"github.com/seanocca/consensus-proxy/cmd/beaconnode"
+	"github.com/seanocca/consensus-proxy/cmd/logger"
 )
 
 // handleWebSocket handles WebSocket connections with failover
 func (lb *LoadBalancer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	// Validate endpoint
 	if !lb.validator.IsValidBeaconEndpoint(r.URL.Path) {
 		logger.Warn("invalid beacon endpoint attempted via websocket",
@@ -53,10 +55,16 @@ func (lb *LoadBalancer) handleWebSocket(w http.ResponseWriter, r *http.Request) 
 	defer clientConn.Close()
 
 	selectedNode.IncrementRequests()
+	selectedNode.IncrementActiveRequests()
 
-	// Send metrics
 	if lb.metrics != nil {
 		lb.metrics.Incr("websocket.connected", []string{
+			fmt.Sprintf("node:%s", selectedNode.Name),
+		}, 1)
+		lb.metrics.Incr("node.requests_total", []string{
+			fmt.Sprintf("node:%s", selectedNode.Name),
+		}, 1)
+		lb.metrics.Gauge("node.active_requests", float64(selectedNode.GetActiveRequests()), []string{
 			fmt.Sprintf("node:%s", selectedNode.Name),
 		}, 1)
 	}
@@ -69,7 +77,14 @@ func (lb *LoadBalancer) handleWebSocket(w http.ResponseWriter, r *http.Request) 
 	)
 
 	// Proxy WebSocket messages bidirectionally
-	lb.proxyWebSocketMessages(clientConn, upstreamConn, selectedNode, r.RemoteAddr)
+	lb.proxyWebSocketMessages(clientConn, upstreamConn, selectedNode, r.RemoteAddr, start)
+
+	selectedNode.DecrementActiveRequests()
+	if lb.metrics != nil {
+		lb.metrics.Gauge("node.active_requests", float64(selectedNode.GetActiveRequests()), []string{
+			fmt.Sprintf("node:%s", selectedNode.Name),
+		}, 1)
+	}
 }
 
 // connectToUpstreamWebSocket attempts to establish a WebSocket connection to a healthy node
@@ -88,6 +103,11 @@ func (lb *LoadBalancer) connectToUpstreamWebSocket(healthyNodes []*beaconnode.Be
 				"error", err,
 			)
 			node.IncrementError()
+			if lb.metrics != nil {
+				lb.metrics.Gauge("node.consecutive_errors", float64(node.ConsecutiveErrors), []string{
+					fmt.Sprintf("node:%s", node.Name),
+				}, 1)
+			}
 
 			// Check if primary node has exceeded error threshold
 			if node.IsPrimary() {
@@ -137,7 +157,7 @@ func (lb *LoadBalancer) connectToUpstreamWebSocket(healthyNodes []*beaconnode.Be
 }
 
 // proxyWebSocketMessages handles bidirectional message forwarding between client and upstream
-func (lb *LoadBalancer) proxyWebSocketMessages(clientConn, upstreamConn *websocket.Conn, node *beaconnode.BeaconNode, clientAddr string) {
+func (lb *LoadBalancer) proxyWebSocketMessages(clientConn, upstreamConn *websocket.Conn, node *beaconnode.BeaconNode, clientAddr string, start time.Time) {
 	errChan := make(chan error, 2)
 
 	// Forward messages from client to upstream
@@ -174,6 +194,7 @@ func (lb *LoadBalancer) proxyWebSocketMessages(clientConn, upstreamConn *websock
 
 	// Wait for connection to close
 	err := <-errChan
+	duration := time.Since(start)
 	logger.Info("websocket connection closed",
 		"node_name", node.Name,
 		"client_addr", clientAddr,
@@ -182,6 +203,9 @@ func (lb *LoadBalancer) proxyWebSocketMessages(clientConn, upstreamConn *websock
 
 	if lb.metrics != nil {
 		lb.metrics.Incr("websocket.disconnected", []string{
+			fmt.Sprintf("node:%s", node.Name),
+		}, 1)
+		lb.metrics.Timing("request.websocket_duration", duration, []string{
 			fmt.Sprintf("node:%s", node.Name),
 		}, 1)
 	}

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/config"
 )
 
 func TestLoadBalancerFailover(t *testing.T) {

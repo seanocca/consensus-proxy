@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/logger"
+	"github.com/seanocca/consensus-proxy/cmd/logger"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/loadbalancer"
+	"github.com/seanocca/consensus-proxy/cmd/loadbalancer"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/config"
 )
 
 type StressTestResults struct {

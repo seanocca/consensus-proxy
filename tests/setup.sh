@@ -35,6 +35,8 @@ GENESIS_DIR="${SCRIPT_DIR}/genesis"
 mkdir -p "$GENESIS_DIR"
 
 SEPOLIA_GENESIS="${GENESIS_DIR}/sepolia-genesis.ssz"
+# Remove stale directory that may have been created by a previous failed run
+[[ -d "$SEPOLIA_GENESIS" ]] && rm -rf "$SEPOLIA_GENESIS"
 if [[ -f "$SEPOLIA_GENESIS" ]]; then
   echo "Sepolia genesis state already exists, skipping download."
 else

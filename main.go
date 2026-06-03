@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"runtime"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
-	"github.com/zircuit-labs/consensus-proxy/cmd/handlers"
-	"github.com/zircuit-labs/consensus-proxy/cmd/loadbalancer"
-	"github.com/zircuit-labs/consensus-proxy/cmd/logger"
-	"github.com/zircuit-labs/consensus-proxy/cmd/ratelimit"
+	"github.com/seanocca/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/handlers"
+	"github.com/seanocca/consensus-proxy/cmd/loadbalancer"
+	"github.com/seanocca/consensus-proxy/cmd/logger"
+	"github.com/seanocca/consensus-proxy/cmd/metrics"
+	"github.com/seanocca/consensus-proxy/cmd/ratelimit"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -107,8 +109,18 @@ func main() {
 			"window", cfg.RateLimit.Window.String())
 	}
 
+	// Emit build info and stub config reload counter at startup
+	mc := lb.GetMetrics()
+	if mc != nil {
+		mc.Gauge("build_info", 1, []string{
+			fmt.Sprintf("go_version:%s", runtime.Version()),
+			"version:unknown",
+		}, 1)
+		mc.Incr("config.reload_total", nil, 0)
+	}
+
 	// Setup routes
-	setupRoutes(lb, rateLimiter)
+	setupRoutes(lb, rateLimiter, mc)
 
 	// Get all configured nodes (beacons)
 	allNodes := cfg.GetAllNodes()
@@ -153,7 +165,7 @@ func main() {
 	}
 }
 
-func setupRoutes(lb *loadbalancer.LoadBalancer, rateLimiter *ratelimit.RateLimiter) {
+func setupRoutes(lb *loadbalancer.LoadBalancer, rateLimiter *ratelimit.RateLimiter, mc metrics.Client) {
 
 	// Health endpoint for the proxy itself
 	http.HandleFunc("/healthz", handlers.HealthzHandler)
@@ -167,9 +179,26 @@ func setupRoutes(lb *loadbalancer.LoadBalancer, rateLimiter *ratelimit.RateLimit
 
 	// Add rate limiting if enabled
 	if rateLimiter != nil {
-		handler = rateLimiter.Middleware(handler)
+		rlMiddleware := rateLimiter.Middleware(handler)
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			rw := &statusRecorder{ResponseWriter: w, code: http.StatusOK}
+			rlMiddleware.ServeHTTP(rw, r)
+			if rw.code == http.StatusTooManyRequests && mc != nil {
+				mc.Incr("request.rate_limited", nil, 1)
+			}
+		})
 	}
 
 	// Route all other requests through the middleware chain
 	http.Handle("/", handler)
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	code int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.code = code
+	r.ResponseWriter.WriteHeader(code)
 }

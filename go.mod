@@ -1,4 +1,4 @@
-module github.com/zircuit-labs/consensus-proxy
+module github.com/seanocca/consensus-proxy
 
 go 1.25.1
 

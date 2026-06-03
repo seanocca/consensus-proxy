@@ -211,7 +211,7 @@ dev:
 # Validate configuration files
 validate:
 	@echo "✅ Validating configurations..."
-	@go run -c "import('consensus-proxy/config'); cfg, err := config.Load('config.toml'); if err != nil { panic(err) }; println('TOML config valid')"
+	@go run ./cmd/validateconfig
 	@echo "✅ Configuration files are valid"
 
 # Show help

@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/beaconnode"
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
-	"github.com/zircuit-labs/consensus-proxy/cmd/logger"
-	"github.com/zircuit-labs/consensus-proxy/cmd/metrics"
-	"github.com/zircuit-labs/consensus-proxy/cmd/validator"
+	"github.com/seanocca/consensus-proxy/cmd/beaconnode"
+	"github.com/seanocca/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/logger"
+	"github.com/seanocca/consensus-proxy/cmd/metrics"
+	"github.com/seanocca/consensus-proxy/cmd/validator"
 
 	"github.com/gorilla/websocket"
 )
@@ -80,6 +80,11 @@ func New(cfg *config.Config) (*LoadBalancer, error) {
 // GetNodes returns all configured nodes (for health/status endpoints)
 func (lb *LoadBalancer) GetNodes() []*beaconnode.BeaconNode {
 	return lb.nodes
+}
+
+// GetMetrics returns the metrics client
+func (lb *LoadBalancer) GetMetrics() metrics.Client {
+	return lb.metrics
 }
 
 // GetHealthyNodes returns a slice of currently healthy nodes

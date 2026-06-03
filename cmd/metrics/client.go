@@ -3,8 +3,8 @@ package metrics
 import (
 	"time"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
-	"github.com/zircuit-labs/consensus-proxy/cmd/logger"
+	"github.com/seanocca/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/logger"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"

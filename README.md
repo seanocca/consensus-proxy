@@ -36,7 +36,7 @@ A high-performance Ethereum beacon node load balancer and proxy written in Go. P
 ### Build and Run
 
 ```bash
-git clone https://github.com/zircuit-labs/consensus-proxy.git
+git clone https://github.com/seanocca/consensus-proxy.git
 cd consensus-proxy
 
 make build
@@ -69,6 +69,27 @@ CONSENSUS_PROXY_CONFIG="/path/to/config.toml" ./bin/consensus-proxy
 
 The proxy is configured via a TOML file. See [`config.toml.example`](config.toml.example) for all options with defaults.
 
+### Environment Variable Overrides
+
+Individual settings can be overridden with environment variables without modifying the config file. **Environment variables always take precedence over values in `config.toml`.**
+
+| Environment Variable | Config key | Example value |
+|---|---|---|
+| `CONSENSUS_PROXY_PORT` | `server.port` | `8080` |
+| `CONSENSUS_PROXY_REQUEST_TIMEOUT` | `server.request_timeout` | `10s` |
+| `CONSENSUS_PROXY_MAX_RETRIES` | `server.max_retries` | `3` |
+| `CONSENSUS_PROXY_LOG_LEVEL` | `logger.level` | `debug` |
+| `CONSENSUS_PROXY_LOG_FORMAT` | `logger.format` | `text` |
+| `CONSENSUS_PROXY_LOG_OUTPUT` | `logger.output` | `stderr` |
+| `CONSENSUS_PROXY_METRICS_ENABLED` | `metrics.enabled` | `true` |
+| `CONSENSUS_PROXY_STATSD_ADDR` | `metrics.statsd_addr` | `localhost:8125` |
+| `CONSENSUS_PROXY_HEALTH_INTERVAL` | `health.interval` | `30s` |
+| `CONSENSUS_PROXY_ERROR_THRESHOLD` | `failover.error_threshold` | `5` |
+
+Durations use Go format (`10s`, `1m30s`, `500ms`). Booleans accept `true`/`false`/`1`/`0`.
+
+`CONSENSUS_PROXY_CONFIG` (for the config file path itself) is also supported — see [Command Line Options](#command-line-options) above.
+
 ### Server
 
 ```toml
@@ -77,7 +98,7 @@ port = 8080
 read_timeout = "30s"
 write_timeout = "30s"
 max_retries = 3                # Max failover attempts per request
-request_timeout = "1200ms"     # Overall timeout for proxied requests
+request_timeout = "10s"        # Overall timeout for proxied requests
 idle_timeout = "90s"
 read_header_timeout = "10s"
 ```

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/beaconnode"
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/beaconnode"
+	"github.com/seanocca/consensus-proxy/cmd/config"
 )
 
 // TestCheckSyncStatus_Synced tests CheckSyncStatus with a fully synced node

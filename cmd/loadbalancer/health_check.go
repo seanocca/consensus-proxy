@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/beaconnode"
-	"github.com/zircuit-labs/consensus-proxy/cmd/logger"
+	"github.com/seanocca/consensus-proxy/cmd/beaconnode"
+	"github.com/seanocca/consensus-proxy/cmd/logger"
 )
 
 // healthCheckResult holds the result of a health check for a single node
@@ -382,5 +382,30 @@ func (lb *LoadBalancer) performHealthCheck() {
 	if lb.metrics != nil {
 		lb.metrics.Gauge("loadbalancer.healthy_backup_nodes", float64(len(newHealthyBackups)), nil, 1)
 		lb.metrics.Gauge("loadbalancer.unhealthy_backup_nodes", float64(unhealthyBackupCount), nil, 1)
+
+		// Count healthy primary nodes and determine failover state
+		healthyPrimaryCount := 0
+		for _, n := range lb.healthyNodes {
+			if n.IsPrimary() {
+				healthyPrimaryCount++
+			}
+		}
+		lb.metrics.Gauge("loadbalancer.healthy_primary_nodes", float64(healthyPrimaryCount), nil, 1)
+
+		// failover_active = 1 when the current primary is not the original primary
+		failoverActive := 0.0
+		for _, n := range lb.nodes {
+			if n.IsPrimary() && n.OriginalPriority != 0 {
+				failoverActive = 1.0
+			}
+		}
+		lb.metrics.Gauge("loadbalancer.failover_active", failoverActive, nil, 1)
+
+		// Per-node consecutive error gauges
+		for _, n := range lb.nodes {
+			lb.metrics.Gauge("node.consecutive_errors", float64(n.ConsecutiveErrors), []string{
+				fmt.Sprintf("node:%s", n.Name),
+			}, 1)
+		}
 	}
 }

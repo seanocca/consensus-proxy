@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/config"
 )
 
 // DNS cache for faster resolution

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/beaconnode"
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/beaconnode"
+	"github.com/seanocca/consensus-proxy/cmd/config"
 )
 
 func TestBeaconNode_IsHealthy(t *testing.T) {

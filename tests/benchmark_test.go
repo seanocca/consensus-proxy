@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/loadbalancer"
+	"github.com/seanocca/consensus-proxy/cmd/loadbalancer"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/config"
 )
 
 // Test mode configuration
@@ -88,6 +88,9 @@ func BenchmarkLoadBalancerSingleNode(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	if err := lb.StartupHealthCheck(); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -142,6 +145,9 @@ func BenchmarkLoadBalancerFailover(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	if err := lb.StartupHealthCheck(); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -161,8 +167,15 @@ func BenchmarkLoadBalancerFailover(b *testing.B) {
 
 // BenchmarkConfigLoad tests configuration loading performance
 func BenchmarkConfigLoad(b *testing.B) {
-	// Create temporary config file
-	configContent := `
+	var configPath string
+
+	if getTestMode() == "real" {
+		configPath = "../config.toml"
+		if _, err := config.Load(configPath); err != nil {
+			b.Fatalf("config.toml validation failed: %v", err)
+		}
+	} else {
+		configContent := `
 [server]
 max_retries = 3
 request_timeout = "50ms"
@@ -171,26 +184,30 @@ request_timeout = "50ms"
 check_interval = "10s"
 check_timeout = "5s"
 
-[[nodes]]
-name = "node1"
+[beacons]
+nodes = ["node1", "node2"]
+
+[beacons.node1]
 url = "http://localhost:5052"
+type = "lighthouse"
 
-[[nodes]]
-name = "node2"
+[beacons.node2]
 url = "http://localhost:5053"
+type = "lighthouse"
 `
-
-	tmpFile, err := createTempFile(configContent)
-	if err != nil {
-		b.Fatal(err)
+		tmpFile, err := createTempFile(configContent)
+		if err != nil {
+			b.Fatal(err)
+		}
+		defer tmpFile.Close()
+		configPath = tmpFile.Name()
 	}
-	defer tmpFile.Close()
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := config.Load(tmpFile.Name())
+		_, err := config.Load(configPath)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -235,12 +252,21 @@ func BenchmarkHealthCheck(b *testing.B) {
 
 // Helper function to create temporary config file
 func createTempFile(content string) (*testFile, error) {
-	return &testFile{content: content, name: "/tmp/test-config.toml"}, nil
+	f, err := os.CreateTemp("", "test-config-*.toml")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := f.WriteString(content); err != nil {
+		f.Close()
+		os.Remove(f.Name())
+		return nil, err
+	}
+	f.Close()
+	return &testFile{name: f.Name()}, nil
 }
 
 type testFile struct {
-	content string
-	name    string
+	name string
 }
 
 func (tf *testFile) Name() string {
@@ -248,5 +274,6 @@ func (tf *testFile) Name() string {
 }
 
 func (tf *testFile) Close() error {
+	os.Remove(tf.name)
 	return nil
 }

@@ -27,30 +27,44 @@ func NewBeaconEndpointValidator() *BeaconEndpointValidator {
 		`^/eth/v1/beacon/states/[^/]+/committees$`,
 		`^/eth/v1/beacon/states/[^/]+/sync_committees$`,
 		`^/eth/v1/beacon/states/[^/]+/randao$`,
+		`^/eth/v1/beacon/states/[^/]+/validator_identities$`,
+		`^/eth/v1/beacon/states/[^/]+/pending_consolidations$`,
+		`^/eth/v1/beacon/states/[^/]+/pending_deposits$`,
+		`^/eth/v1/beacon/states/[^/]+/pending_partial_withdrawals$`,
+		`^/eth/v1/beacon/states/[^/]+/proposer_lookahead$`,
 		`^/eth/v1/beacon/headers$`,
 		`^/eth/v1/beacon/headers/[^/]+$`,
 		`^/eth/v1/beacon/blocks/[^/]+$`,
 		`^/eth/v1/beacon/blocks/[^/]+/root$`,
 		`^/eth/v1/beacon/blocks/[^/]+/attestations$`,
+		`^/eth/v1/beacon/blocks$`,
+		`^/eth/v1/beacon/blinded_blocks/[^/]+$`,
 		`^/eth/v1/beacon/blob_sidecars/[^/]+$`,
 		`^/eth/v1/beacon/blobs/[^/]+$`,
+		`^/eth/v1/beacon/execution_payload_bids$`,
+		`^/eth/v1/beacon/execution_payload_envelopes/[^/]+$`,
 		`^/eth/v1/beacon/pool/attestations$`,
 		`^/eth/v1/beacon/pool/attester_slashings$`,
 		`^/eth/v1/beacon/pool/proposer_slashings$`,
 		`^/eth/v1/beacon/pool/voluntary_exits$`,
 		`^/eth/v1/beacon/pool/bls_to_execution_changes$`,
+		`^/eth/v1/beacon/pool/sync_committees$`,
+		`^/eth/v1/beacon/pool/payload_attestations$`,
 		`^/eth/v1/beacon/light_client/bootstrap/[^/]+$`,
 		`^/eth/v1/beacon/light_client/updates$`,
 		`^/eth/v1/beacon/light_client/finality_update$`,
 		`^/eth/v1/beacon/light_client/optimistic_update$`,
-		`^/eth/v1/beacon/deposit_snapshot$`,
 		`^/eth/v1/beacon/rewards/blocks/[^/]+$`,
 		`^/eth/v1/beacon/rewards/attestations/[^/]+$`,
 		`^/eth/v1/beacon/rewards/sync_committee/[^/]+$`,
 
 		// V2 Beacon endpoints
+		`^/eth/v2/beacon/blocks$`,
 		`^/eth/v2/beacon/blocks/[^/]+$`,
+		`^/eth/v2/beacon/blocks/[^/]+/attestations$`,
+		`^/eth/v2/beacon/blinded_blocks$`,
 		`^/eth/v2/beacon/pool/attestations$`,
+		`^/eth/v2/beacon/pool/attester_slashings$`,
 
 		// V3 Beacon endpoints
 		`^/eth/v3/beacon/blocks/[^/]+$`,
@@ -64,6 +78,7 @@ func NewBeaconEndpointValidator() *BeaconEndpointValidator {
 		`^/eth/v1/debug/beacon/states/[^/]+$`,
 		`^/eth/v1/debug/beacon/heads$`,
 		`^/eth/v1/debug/fork_choice$`,
+		`^/eth/v1/debug/beacon/data_column_sidecars/[^/]+$`,
 		`^/eth/v2/debug/beacon/states/[^/]+$`,
 		`^/eth/v2/debug/beacon/heads$`,
 
@@ -78,6 +93,7 @@ func NewBeaconEndpointValidator() *BeaconEndpointValidator {
 		`^/eth/v1/node/version$`,
 		`^/eth/v1/node/syncing$`,
 		`^/eth/v1/node/health$`,
+		`^/eth/v2/node/version$`,
 
 		// Validator endpoints
 		`^/eth/v1/validator/duties/attester/[^/]+$`,
@@ -94,21 +110,23 @@ func NewBeaconEndpointValidator() *BeaconEndpointValidator {
 		`^/eth/v1/validator/prepare_beacon_proposer$`,
 		`^/eth/v1/validator/register_validator$`,
 		`^/eth/v1/validator/liveness/[^/]+$`,
+		`^/eth/v1/validator/beacon_committee_selections$`,
+		`^/eth/v1/validator/sync_committee_selections$`,
+		`^/eth/v1/validator/payload_attestation_data/[^/]+$`,
+		`^/eth/v1/validator/duties/ptc/[^/]+$`,
+		`^/eth/v1/validator/execution_payload_bids/[^/]+/[^/]+$`,
 
 		// V2 Validator endpoints
 		`^/eth/v2/validator/blocks/[^/]+$`,
 		`^/eth/v2/validator/aggregate_attestation$`,
+		`^/eth/v2/validator/aggregate_and_proofs$`,
+		`^/eth/v2/validator/duties/proposer/[^/]+$`,
 
 		// V3 Validator endpoints
 		`^/eth/v3/validator/blocks/[^/]+$`,
 
 		// Builder endpoints (MEV-Boost)
 		`^/eth/v1/builder/states/[^/]+/expected_withdrawals$`,
-
-		// Rewards endpoints
-		`^/eth/v1/beacon/rewards/blocks/[^/]+$`,
-		`^/eth/v1/beacon/rewards/attestations/[^/]+$`,
-		`^/eth/v1/beacon/rewards/sync_committee/[^/]+$`,
 	}
 
 	// Compile all patterns

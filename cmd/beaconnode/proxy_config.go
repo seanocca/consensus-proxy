@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/config"
 )
 
 // createProxyDirector creates a custom Director function for the reverse proxy

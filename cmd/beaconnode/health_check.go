@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
-	"github.com/zircuit-labs/consensus-proxy/cmd/logger"
+	"github.com/seanocca/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/logger"
 )
 
 // SyncingResponse represents the response from /eth/v1/node/syncing endpoint

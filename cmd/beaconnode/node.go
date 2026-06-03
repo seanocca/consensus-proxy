@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/zircuit-labs/consensus-proxy/cmd/config"
+	"github.com/seanocca/consensus-proxy/cmd/config"
 )
 
 // BeaconNode represents a single beacon node with its proxy and status
@@ -19,6 +19,7 @@ type BeaconNode struct {
 	ConsecutiveSuccesses int64 // atomic consecutive success counter (for failback)
 	TotalFailures        int64 // atomic total failure counter
 	Requests             int64 // atomic request counter
+	ActiveRequests       int64 // atomic in-flight request counter
 	LastCheck            time.Time
 	mu                   sync.RWMutex
 	Priority             int
@@ -87,6 +88,21 @@ func (bn *BeaconNode) GetConsecutiveSuccesses() int64 {
 // IncrementRequests increments the request counter
 func (bn *BeaconNode) IncrementRequests() {
 	atomic.AddInt64(&bn.Requests, 1)
+}
+
+// IncrementActiveRequests increments the in-flight request counter
+func (bn *BeaconNode) IncrementActiveRequests() {
+	atomic.AddInt64(&bn.ActiveRequests, 1)
+}
+
+// DecrementActiveRequests decrements the in-flight request counter
+func (bn *BeaconNode) DecrementActiveRequests() {
+	atomic.AddInt64(&bn.ActiveRequests, -1)
+}
+
+// GetActiveRequests returns the current number of in-flight requests
+func (bn *BeaconNode) GetActiveRequests() int64 {
+	return atomic.LoadInt64(&bn.ActiveRequests)
 }
 
 // GetStats returns current node statistics

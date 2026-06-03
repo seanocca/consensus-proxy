@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/zircuit-labs/consensus-proxy/cmd/beaconnode"
-	"github.com/zircuit-labs/consensus-proxy/cmd/logger"
+	"github.com/seanocca/consensus-proxy/cmd/beaconnode"
+	"github.com/seanocca/consensus-proxy/cmd/logger"
 )
 
 // ServeHTTP implements the http.Handler interface
@@ -60,12 +60,24 @@ func (lb *LoadBalancer) handleHTTPRequest(w http.ResponseWriter, r *http.Request
 
 		// Check if overall timeout has been exceeded
 		if lb.checkRequestTimeout(overallCtx, start, r, node.Name) {
+			if lb.metrics != nil {
+				lb.metrics.Incr("request.timeout", []string{
+					fmt.Sprintf("node:%s", node.Name),
+					"reason:overall_timeout",
+				}, 1)
+			}
 			return
 		}
 
 		// Calculate remaining timeout for this attempt
 		remainingTimeout := lb.config.Server.RequestTimeout - time.Since(start)
 		if remainingTimeout <= 0 {
+			if lb.metrics != nil {
+				lb.metrics.Incr("request.timeout", []string{
+					fmt.Sprintf("node:%s", node.Name),
+					"reason:remaining_timeout",
+				}, 1)
+			}
 			http.Error(w, "Request timeout", http.StatusGatewayTimeout)
 			return
 		}
@@ -75,7 +87,7 @@ func (lb *LoadBalancer) handleHTTPRequest(w http.ResponseWriter, r *http.Request
 		lastStatusCode = recorder.statusCode
 
 		// Send metrics for this attempt
-		lb.recordAttemptMetrics(node.Name, lastStatusCode, attemptDuration, i)
+		lb.recordAttemptMetrics(node, lastStatusCode, attemptDuration, i)
 
 		// Check if response was successful
 		if lastStatusCode >= HTTPStatusSuccessMin && lastStatusCode < HTTPStatusSuccessMax {
@@ -124,23 +136,32 @@ func (lb *LoadBalancer) attemptNodeRequest(overallCtx context.Context, node *bea
 	recorder := &responseRecorder{}
 
 	node.IncrementRequests()
+	node.IncrementActiveRequests()
 	attemptStart := time.Now()
 
 	// Try the request
 	node.Proxy.ServeHTTP(recorder, reqWithTimeout)
 
+	node.DecrementActiveRequests()
 	return recorder, time.Since(attemptStart)
 }
 
 // recordAttemptMetrics sends metrics for a request attempt
-func (lb *LoadBalancer) recordAttemptMetrics(nodeName string, statusCode int, duration time.Duration, attemptNum int) {
-	if lb.metrics != nil {
-		lb.metrics.Timing("request.attempt_duration", duration, []string{
-			fmt.Sprintf("node:%s", nodeName),
-			fmt.Sprintf("status_code:%d", statusCode),
-			fmt.Sprintf("attempt:%d", attemptNum+1),
-		}, 1)
+func (lb *LoadBalancer) recordAttemptMetrics(node *beaconnode.BeaconNode, statusCode int, duration time.Duration, attemptNum int) {
+	if lb.metrics == nil {
+		return
 	}
+	lb.metrics.Timing("request.attempt_duration", duration, []string{
+		fmt.Sprintf("node:%s", node.Name),
+		fmt.Sprintf("status_code:%d", statusCode),
+		fmt.Sprintf("attempt:%d", attemptNum+1),
+	}, 1)
+	lb.metrics.Incr("node.requests_total", []string{
+		fmt.Sprintf("node:%s", node.Name),
+	}, 1)
+	lb.metrics.Gauge("node.active_requests", float64(node.GetActiveRequests()), []string{
+		fmt.Sprintf("node:%s", node.Name),
+	}, 1)
 }
 
 // handleSuccessResponse handles a successful response from a node
@@ -171,6 +192,11 @@ func (lb *LoadBalancer) handleNodeError(node *beaconnode.BeaconNode, r *http.Req
 	if statusCode >= HTTPStatusServerErrorMin {
 		node.IncrementError()
 		consecutiveErrors := atomic.LoadInt64(&node.ConsecutiveErrors)
+		if lb.metrics != nil {
+			lb.metrics.Gauge("node.consecutive_errors", float64(consecutiveErrors), []string{
+				fmt.Sprintf("node:%s", node.Name),
+			}, 1)
+		}
 
 		// Check if this is the primary node and if we've reached threshold
 		if node.IsPrimary() && consecutiveErrors >= int64(lb.config.Failover.ErrorThreshold) {
